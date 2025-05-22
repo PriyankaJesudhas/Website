@@ -30,11 +30,25 @@ function QuoteModal({ open, onClose }) {
   const [email, setEmail]             = useState('');
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    const body = encodeURIComponent(`Job Type: ${jobType}\nJob Description: ${description}\nEmail: ${email}`);
-    window.location.href = `mailto:priyanka@avteks.in?subject=Quote Request&body=${body}`;
-    onClose();
-  };
+  e.preventDefault();
+
+  fetch("/api/quote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jobType, description, email }),
+  })
+    .then((res) => {
+      if (res.ok) {
+        alert("Quote sent! We’ll reply soon.");
+        onClose();                // close the modal
+        setJobType(""); setDescription(""); setEmail("");
+      } else {
+        alert("Server error – please try again.");
+      }
+    })
+    .catch(() => alert("Network error"));
+};
+  
 
   if (!open) return null;
   return (
