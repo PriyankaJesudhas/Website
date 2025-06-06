@@ -1,0 +1,116 @@
+#!/bin/bash
+# ====================================================
+# deploy.sh
+#
+# Simple deployment script to:
+#  1. Clone (or pull) the 'release' branch from your repo
+#  2. Install backend & frontend dependencies
+#  3. Launch backend and frontend processes in the background
+#
+# USAGE:
+#   1. scp deploy.sh ec2-user@YOUR_SERVER:/home/ec2-user/
+#   2. ssh into your server, then:
+#        chmod +x deploy.sh
+#        ./deploy.sh
+# ====================================================
+
+### ── CONFIGURABLE VARIABLES ─────────────────────────
+
+# 1) SSH-URL or HTTPS URL of your Git repo.
+#    e.g. "git@github.com:your-username/your-repo.git" or "https://github.com/your-username/your-repo.git"
+REPO_URL="https://github.com/PriyankaJesudhas/Website.git"
+
+# 2) Where on the t2 instance you want the code to live.
+#    e.g. /home/ec2-user/app
+APP_DIR="/home/ec2-user/app"
+
+# 3) The branch you want to pull
+BRANCH="release"
+
+# 4) Relative paths (inside $APP_DIR) to backend & frontend folders.
+#    Adjust if your repo uses different folder names.
+BACKEND_DIR="my-site/server"
+FRONTEND_DIR="my-site"
+
+# 5) The commands to run your backend & frontend.
+#    Replace these with whatever scripts you have defined in package.json
+#    (e.g. perhaps you use "npm run dev" or "npm run start:backend", etc.)
+BACKEND_START_CMD="npm run dev"
+FRONTEND_START_CMD="npm run dev"
+
+# 6) Logfiles (so you can inspect stdout/stderr if needed)
+BACKEND_LOG="$APP_DIR/logs/backend.log"
+FRONTEND_LOG="$APP_DIR/logs/frontend.log"
+
+### ── END CONFIGURATION ─────────────────────────────
+
+# Exit immediately if any line fails
+set -e
+
+echo "==== DEPLOY SCRIPT START ====================================="
+echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ") (UTC)"
+echo
+
+# 1) Ensure the base APP_DIR exists; clone if not, else pull.
+if [ -d "$APP_DIR/.git" ]; then
+  echo "--> [$APP_DIR] already exists. Pulling latest from '$BRANCH'..."
+  cd "$APP_DIR"
+  # Make sure nothing is stashed away, reset any local changes
+  git fetch origin
+  git checkout "$BRANCH"
+  git reset --hard "origin/$BRANCH"
+  git pull origin "$BRANCH"
+else
+  echo "--> Cloning repo ($REPO_URL) into $APP_DIR on branch '$BRANCH'..."
+  git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+  cd "$APP_DIR"
+fi
+
+echo
+echo "--> Current HEAD: $(git rev-parse --short HEAD) ($(git log -1 --pretty=%B))"
+echo
+
+# 2) Create a logs directory if it doesn't exist
+mkdir -p "$APP_DIR/logs"
+
+# 3) Install backend dependencies and start the backend
+if [ -d "$BACKEND_DIR" ]; then
+  echo "--> Installing backend deps in $BACKEND_DIR..."
+  cd "$APP_DIR/$BACKEND_DIR"
+  npm install
+
+  echo "--> Starting backend with: $BACKEND_START_CMD"
+  # Kill any existing backend on the same port (optional; uncomment if you want)
+  # pkill -f "node .*your-backend-entry.js" || true
+
+  # Run in background; redirect stdout/stderr to log
+  nohup $BACKEND_START_CMD > "$BACKEND_LOG" 2>&1 &
+  echo "--> Backend launched (logs: $BACKEND_LOG)"
+else
+  echo "!! WARNING: Backend directory '$APP_DIR/$BACKEND_DIR' not found. Skipping backend."
+fi
+
+echo
+
+# 4) Install frontend dependencies and start the frontend
+if [ -d "$APP_DIR/$FRONTEND_DIR" ];
+ then
+  echo "--> Installing frontend deps in $FRONTEND_DIR..."
+  cd "$APP_DIR/$FRONTEND_DIR"
+  npm install
+
+  echo "--> Starting frontend with: $FRONTEND_START_CMD"
+  # Kill any existing frontend on the same port (optional; uncomment if you want)
+  # pkill -f "npm start.*$FRONTEND_DIR" || true
+
+  # Run in background; redirect stdout/stderr to log
+  nohup $FRONTEND_START_CMD > "$FRONTEND_LOG" 2>&1 &
+  echo "--> Frontend launched (logs: $FRONTEND_LOG)"
+else
+  echo "!! WARNING: Frontend directory '$APP_DIR/$FRONTEND_DIR' not found. Skipping frontend."
+fi
+
+echo
+echo "==== DEPLOY SCRIPT COMPLETE =================================="
+echo "You can check logs in $APP_DIR/logs/"
+echo "=============================================================="

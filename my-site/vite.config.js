@@ -8,6 +8,8 @@ export default defineConfig({
 
   // dev-server options
   server: {
+    port : 80,
+    allowedHosts: ['avteks.in'],
     proxy: {
       '/api': 'http://localhost:4000'   // <-- Express runs here
     }
