@@ -8,10 +8,17 @@ export default defineConfig({
 
   // dev-server options
   server: {
+    host:'0.0.0.0',
     port : 80,
+    strictPort: true, // if port is already in use, exit
     allowedHosts: ['avteks.in'],
     proxy: {
-      '/api': 'http://localhost:4000'   // <-- Express runs here
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: path => path.replace(/^\/api/, '')
+      }
     }
   }
 });
