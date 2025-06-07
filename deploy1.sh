@@ -80,6 +80,14 @@ else
   echo "!! Frontend directory not found: $APP_DIR/$FRONTEND_DIR"
 fi
 
+echo "--> Serving frontend build with pm2..."
+sudo npm install -g serve
+pm2 stop frontend-app || true
+pm2 delete frontend-app || true
+pm2 start "serve" --name frontend-app -- -s dist -l 80 --single --log $FRONTEND_LOG
+pm2 save
+echo "--> Frontend is served on port 80"
+
 echo
 echo "==== DEPLOY SCRIPT COMPLETE =================================="
 echo "Frontend production build is ready in $APP_DIR/$FRONTEND_DIR/build"
