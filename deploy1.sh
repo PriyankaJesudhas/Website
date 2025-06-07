@@ -10,6 +10,8 @@
 # ====================================================
 
 set -e
+pm2 delete all
+pm2 save
 
 # --- CONFIGURATION ---
 
@@ -17,7 +19,7 @@ REPO_URL="https://github.com/PriyankaJesudhas/Website.git"
 APP_DIR="/home/ec2-user/app"
 BRANCH="release"
 BACKEND_DIR="my-site/server"
-FRONTEND_DIR="my-site"
+FRONTEND_DIR="my-site/dist"
 BACKEND_START_FILE="index.js"    # adjust if your backend entry is different
 BACKEND_LOG="$APP_DIR/logs/backend.log"
 FRONTEND_LOG="$APP_DIR/logs/frontend.log"
@@ -84,7 +86,7 @@ echo "--> Serving frontend build with pm2..."
 sudo npm install -g serve
 pm2 stop frontend-app || true
 pm2 delete frontend-app || true
-pm2 start "serve" --name frontend-app -- -s dist -l 80 --single --log $FRONTEND_LOG
+sudo pm2 start "serve" --name frontend-app -- -s dist -l 80 --single --log $FRONTEND_LOG
 pm2 save
 echo "--> Frontend is served on port 80"
 
