@@ -1,5 +1,5 @@
 // ─── src/App.jsx (single‑page with smooth scroll + Quote modal) ────────────
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './index.css';
 
 /* ── assets ───────────────────────────────────────────────────────────── */
@@ -76,24 +76,53 @@ function QuoteModal({ open, onClose }) {
   );
 }
 
-/* ── 50‑vh alternating card ─────────────────────────────────────────── */
-function ServiceBlock({ img, title, bullets, id, big=false, reverse=false }) {
+function ServiceBlock({ img, title, bullets, id, big = false, reverse = false }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { threshold: 0.85 }
+    );
+    if (ref.current) observer.observe(ref.current);
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <article id={id} className={`group relative isolate flex ${reverse?'flex-row-reverse':'flex-row'} items-center w-full h-[50vh] overflow-hidden`}>
+    <article
+      id={id}
+      ref={ref}
+      className={`group relative isolate flex ${reverse ? 'flex-row-reverse' : 'flex-row'} items-center w-full h-[50vh] overflow-hidden`}
+    >
       <div className="flex items-center justify-center w-1/2 h-full bg-gray-50/20">
-        <img src={img} alt={title} className={`${big?'w-60 h-60':'w-52 h-52'} object-contain select-none pointer-events-none`} />
+        <img
+          src={img}
+          alt={title}
+          className={`${big ? 'w-60 h-60' : 'w-52 h-52'} object-contain select-none pointer-events-none`}
+        />
       </div>
-      <div className={`absolute inset-y-0 ${reverse?'left-0':'right-0'} w-1/2 flex items-center justify-center bg-white/90 backdrop-blur-lg rounded-lg shadow-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none p-8`}>
+
+      <div
+        className={`absolute inset-y-0 ${reverse ? 'left-0' : 'right-0'} w-1/2 flex items-center justify-center bg-white/90 backdrop-blur-lg rounded-lg shadow-xl 
+        transition-opacity duration-500 p-8
+        ${isVisible ? 'opacity-100' : 'opacity-0 scale-95'}
+        `}
+      >
         <div>
           <h3 className="text-2xl font-bold text-red-500 mb-4 text-center">{title}</h3>
           <ul className="text-base list-disc list-inside space-y-1">
-            {bullets.map(b=> <li key={b}>{b}</li>)}
+            {bullets.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
           </ul>
         </div>
       </div>
     </article>
   );
 }
+
 
 /* ── Main page ───────────────────────────────────────────────────────── */
 function MainPage() {
